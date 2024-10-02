@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ZLSSettings">
-    <option name="zlsPath" value="C:\zls\zls.exe" />
+    <option name="zlsPath" value="/Library/zig/zls" />
   </component>
   <component name="ZigProjectSettings">
-    <option name="toolchainHomeDirectory" value="$PROJECT_DIR$/../zig" />
+    <option name="toolchainHomeDirectory" value="/Library/zig" />
   </component>
 </project>
