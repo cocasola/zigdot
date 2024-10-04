@@ -1,11 +1,23 @@
 const raylib = @import("raylib");
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
-const NAME = "Limerence";
+const width: i32 = 1920;
+const height: i32 = 1080;
+const name = "Limerence";
 
-pub fn create_window() !void {
-    try raylib.initWindow(WIDTH, HEIGHT, NAME);
+pub var quit = false;
+
+pub fn create_window() void {
+    raylib.initWindow(width, height, name);
+    raylib.setTargetFPS(60);
+}
+
+pub fn clear_window() void {
+    raylib.beginDrawing();
+    raylib.clearBackground(raylib.Color.black);
+}
+
+pub fn update_window() void {
+    raylib.endDrawing();
 }
 
 pub fn destroy_window() void {

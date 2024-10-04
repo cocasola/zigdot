@@ -34,6 +34,8 @@ pub fn build(b: *std.Build) !void {
     });
 
     lib_unit_tests.linkLibrary(raylib_artifact);
+    lib_unit_tests.root_module.addImport("raylib", raylib);
+    lib_unit_tests.root_module.addImport("raygui", raygui);
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
