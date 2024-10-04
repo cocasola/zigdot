@@ -3,47 +3,41 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
-pub const ConfigMode = struct {
-    from_file: bool = false
+pub const Config = struct {
+    schedule: [][][]const u8,
+    fixed_rate: i32,
+    modules: ?std.json.Value = null,
+    module_blacklist: [][]const u8
 };
 
-pub fn Config(comptime mode: ConfigMode) type {
-    return struct {
-        schedule: [][][]const u8,
-        fixed_rate: i32,
-        allocator: if (mode.from_file) ArenaAllocator else void,
+pub const ConfigFromFile = struct {
+    config: Config,
+    allocator: ArenaAllocator,
 
-        const Self = @This();
+    const Self = @This();
 
-        inline fn from_file(allocator: Allocator) !Self {
-            const ConfigJson = struct {
-                root: []const u8 = "Limerence Config",
-                schedule: [][][]const u8,
-                fixed_rate: i32,
-            };
+    pub inline fn init(allocator: Allocator) !Self {
+        const ConfigJson = struct {
+            root: []const u8 = "Limerence Config",
+            usingnamespace Config;
+        };
 
-            var arena = ArenaAllocator.init(allocator);
+        var arena = ArenaAllocator.init(allocator);
 
-            const config = try std.json.parseFromSliceLeaky(
-                ConfigJson,
-                arena.allocator(),
-                @embedFile("lim.config.json"),
-                .{}
-            );
+        const config = try std.json.parseFromSliceLeaky(
+            ConfigJson,
+            arena.allocator(),
+            @embedFile("lim.config.json"),
+            .{}
+        );
 
-            return Self{
-                .schedule = config.schedule,
-                .fixed_rate = config.fixed_rate,
-                .allocator = arena
-            };
-        }
+        return Self{
 
-        pub const init = if (mode.from_file) from_file else void;
+            .allocator = arena
+        };
+    }
 
-        fn deinit_from_file(this: *Self) void {
-            this.allocator.deinit();
-        }
-
-        pub const deinit = if (mode.from_file) deinit_from_file else void;
-    };
-}
+    pub fn deinit(this: *Self) void {
+        this.allocator.deinit();
+    }
+};
