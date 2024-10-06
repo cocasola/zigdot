@@ -7,12 +7,5 @@
         ["lim_pre_render"],
         ["lim_render"],
         ["lim_post_render"]
-    ],
-    "fixed_rate": 60,
-    "modules": {
-
-    },
-    "module_blacklist": {
-
-    }
+    ]
 }
