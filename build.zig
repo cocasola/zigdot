@@ -26,7 +26,7 @@ fn map_modules(root_dir: std.fs.Dir, allocator: Allocator) !void {
         if (!std.mem.eql(u8, std.fs.path.extension(entry.path), ".zig"))
             continue;
 
-        var iter = std.mem.splitSequence(u8, entry.path, "\\");
+        var iter = std.mem.splitSequence(u8, entry.path, &.{ std.fs.path.sep });
         const first = iter.first();
 
         if (modules.getPtr(first)) |group| {

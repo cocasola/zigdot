@@ -3,8 +3,8 @@ const raylib = @import("raylib");
 
 const Instance = @import("../../Instance.zig");
 
-width: i32 = 1920,
-height: i32 = 1080,
+width: i32 = 1080,
+height: i32 = 720,
 name: [*:0]const u8 = "Limerence",
 quit: bool = false,
 
