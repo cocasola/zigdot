@@ -36,9 +36,9 @@ pub fn init(
     var label_map = StringHashMap(usize).init(allocator);
     errdefer label_map.deinit();
 
-    for (0..schedule_config.len) |i| {
-        for (schedule_config[i]) |label| {
-            try label_map.put(label, i);
+    for (schedule_config, 0..) |group, i| {
+        for (group) |label| {
+            try label_map.putNoClobber(label, i);
         }
     }
 

@@ -80,7 +80,7 @@ pub fn build(b: *std.Build) !void {
 
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
-        .optimize = optimize,
+        .optimize = optimize
     });
 
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib c library

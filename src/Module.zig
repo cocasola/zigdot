@@ -66,7 +66,6 @@ pub fn init_all(instance: *Instance) !void {
                     continue;
 
                 const callback: Schedule.CallbackPtrGeneric(ModuleType) = field;
-
                 _ = try instance.register_callback(@ptrCast(callback), decl.name, @ptrCast(module.data.ptr));
             }
 
@@ -88,5 +87,9 @@ pub fn deinit_all(instance: *Instance) void {
         if (module.deinit) |deinit| {
             deinit(@ptrCast(module.data.ptr));
         }
+
+        instance.allocator.free(module.data);
     }
+
+    instance.modules.deinit();
 }

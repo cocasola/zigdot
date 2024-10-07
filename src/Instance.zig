@@ -37,13 +37,6 @@ pub fn init(allocator: Allocator, config: Config) !Instance {
 
 pub fn deinit(this: *Instance) void {
     Module.deinit_all(this);
-
-    var module_iter = this.modules.valueIterator();
-    while (module_iter.next()) |module| {
-        this.allocator.free(module.data);
-    }
-    this.modules.deinit();
-
     this.schedule.deinit();
 }
 

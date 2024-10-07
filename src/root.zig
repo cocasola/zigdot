@@ -5,11 +5,13 @@ pub const Schedule = @import("Schedule.zig");
 pub const Instance = @import("Instance.zig");
 
 test "test" {
+    {
+
     const std = @import("std");
-    const lim = @import("root.zig");
+    const zigdot = @import("root.zig");
 
     const GPA = std.heap.GeneralPurposeAllocator;
-    const Window = lim.ui.Window;
+    const Window = zigdot.ui.Window;
 
     var gpa = GPA(.{}){};
     defer if (gpa.deinit() == std.heap.Check.leak) unreachable;
@@ -26,4 +28,8 @@ test "test" {
     while (!window.quit) {
         try instance.schedule.run();
     }
+
+    }
+
+    @panic("help me");
 }
