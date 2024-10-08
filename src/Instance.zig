@@ -3,48 +3,59 @@ const builtin = @import("builtin");
 const util = @import("util.zig");
 
 const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
 const AutoHashMap = std.AutoHashMap;
 const Config = @import("Config.zig");
-const Module = @import("Module.zig");
 const Schedule = @import("Schedule.zig");
-
-schedule: Schedule,
-config: *const Config,
-allocator: Allocator,
-modules: AutoHashMap(u32, Module),
+const ModuleGraph = @import("ModuleGraph.zig");
 
 const Instance = @This();
 
+config: *const Config,
+allocator: Allocator,
+modules: ModuleGraph,
+resources: AutoHashMap(u32, []u8),
+
 pub fn init(allocator: Allocator, config: Config) !Instance {
-    var modules = AutoHashMap(u32, Module).init(allocator);
-    errdefer modules.deinit();
-
-    var schedule = try Schedule.init(allocator, config.schedule);
-    errdefer schedule.deinit();
-
     var instance = Instance{
-        .schedule = schedule,
         .config = &config,
         .allocator = allocator,
-        .modules = modules
+        .resources = undefined,
+        .modules = undefined
     };
 
-    try Module.init_all(&instance);
+    instance.resources = AutoHashMap(u32, []u8).init(allocator);
+    errdefer instance.resources.deinit();
+
+    instance.modules = try ModuleGraph.init(allocator, &instance);
+    errdefer instance.modules.deinit();
 
     return instance;
 }
 
-pub fn deinit(this: *Instance) void {
-    Module.deinit_all(this);
-    this.schedule.deinit();
+pub fn deinit(instance: *Instance) void {
+    instance.modules.deinit();
+
+    var iter = instance.resources.valueIterator();
+    while (iter.next()) |resource| {
+        instance.allocator.free(resource.*);
+    }
+
+    instance.resources.deinit();
 }
 
-pub fn register_callback(this: *Instance, callback: Schedule.CallbackPtr, label: []const u8, data: *anyopaque) !bool {
-    return try this.schedule.register_callback(callback, label, data);
+pub fn create_resource(instance: *Instance, comptime T: type) !*T {
+    const resource = try instance.allocator.create(T);
+    errdefer instance.allocator.destroy(resource);
+
+    if (@typeInfo(type) == .Struct)
+        resource.* = T{};
+
+    instance.resources.putNoClobber(util.typeid(T), std.mem.asBytes(resource));
+
+    return resource;
 }
 
-pub fn get_module(this: *Instance, comptime T: type) ?*T {
-    const module = this.modules.get(util.typeid(T)) orelse return null;
-    return @ptrCast(@alignCast(module.data.ptr));
+pub fn get_resource(instance: *Instance, comptime T: type) ?*T {
+    const bytes = instance.resources.get(util.typeid(T)) orelse return null;
+    return @ptrCast(@alignCast(bytes));
 }

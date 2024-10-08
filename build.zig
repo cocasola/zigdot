@@ -51,7 +51,7 @@ fn map_modules(root_dir: std.fs.Dir, allocator: Allocator) !void {
 
         try modules_file.writeAll(try std.fmt.allocPrint(allocator, "pub const {s} = struct {{\n", .{ key }));
 
-        for (modules.getPtr(key).?.items) |module| {
+        for (entry.value_ptr.items) |module| {
             try modules_file.writeAll(try std.fmt.allocPrint(
                 allocator,
                 "\tpub const {s} = @import(\"modules/{s}\");\n",
@@ -59,7 +59,7 @@ fn map_modules(root_dir: std.fs.Dir, allocator: Allocator) !void {
             ));
         }
 
-        try modules_file.writeAll("};");
+        try modules_file.writeAll("};\n\n");
     }
 }
 
@@ -72,10 +72,17 @@ pub fn build(b: *std.Build) !void {
     arena.deinit();
 
     const lib = b.addStaticLibrary(.{
-        .name = "limerence",
+        .name = "zigdot",
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const playground = b.addExecutable(.{
+        .name = "zigdot-playground",
+        .root_source_file = b.path("src/playground.zig"),
+        .target = target,
+        .optimize = optimize
     });
 
     const raylib_dep = b.dependency("raylib-zig", .{
@@ -85,6 +92,7 @@ pub fn build(b: *std.Build) !void {
 
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib c library
     lib.linkLibrary(raylib_artifact);
+    playground.linkLibrary(raylib_artifact);
 
     const raylib = raylib_dep.module("raylib"); // main raylib module
     const raygui = raylib_dep.module("raygui"); // raygui module
@@ -92,20 +100,9 @@ pub fn build(b: *std.Build) !void {
     lib.root_module.addImport("raylib", raylib);
     lib.root_module.addImport("raygui", raygui);
 
+    playground.root_module.addImport("raylib", raylib);
+    playground.root_module.addImport("raygui", raygui);
+
     b.installArtifact(lib);
-
-    const lib_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    lib_unit_tests.linkLibrary(raylib_artifact);
-    lib_unit_tests.root_module.addImport("raylib", raylib);
-    lib_unit_tests.root_module.addImport("raygui", raygui);
-
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    b.installArtifact(playground);
 }

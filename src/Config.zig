@@ -4,12 +4,11 @@ const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
 
-schedule: [][][]const u8,
+const Config = @This();
+
 modules: ?std.json.Value = null,
 fixed_rate: i32 = 60,
 module_blacklist: [][]const u8 = &.{},
-
-const Config = @This();
 
 pub const Static = struct {
     config: Config,
