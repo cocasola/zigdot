@@ -15,7 +15,7 @@ fn Init(comptime T: type) type {
 }
 
 fn Deinit(comptime T: type) type {
-    return *const fn (data: ?*T) void;
+    return *const fn (data: *T) void;
 }
 
 pub const Node = struct {
@@ -54,16 +54,17 @@ fn build_graph(graph: *ModuleGraph) !void {
             if (!@hasDecl(Module, "init"))
                 continue;
 
-            const module_ret = @typeInfo(Module.init).Fn.return_type;
-            const module_ret_child = @typeInfo(module_ret).Optional.child;
-            const module_ret_ptr_child = @typeInfo(module_ret_child).Pointer.child;
+            const module_ret_type = @typeInfo(@TypeOf(Module.init)).Fn.return_type.?;
+            const payload_type = @typeInfo(module_ret_type).ErrorUnion.payload;
+            const module_inner_ret_type = @typeInfo(payload_type).Pointer.child;
 
-            const p_init: Init(module_ret_ptr_child) = Module.init;
-            const p_deinit: ?Deinit(module_ret_ptr_child) = if (@hasDecl(Module, deinit)) Module.deinit else null;
+            const p_init: Init(module_inner_ret_type) = Module.init;
+            const p_deinit: ?Deinit(module_inner_ret_type) = if (@hasDecl(Module, "deinit")) Module.deinit else null;
 
             try graph.nodes.append(Node{
                 .init = @ptrCast(p_init),
                 .deinit = @ptrCast(p_deinit),
+                .data = null,
                 .name = @typeName(Module),
                 .typeid = util.typeid(Module),
                 .dependees = ArrayList(*Node).init(allocator),
@@ -120,12 +121,12 @@ fn init_recursive(node: *Node, instance: *Instance, init_order: *ArrayList(*Node
                 continue :outer;
         }
 
-        try init_recursive(dependee, instance);
+        try init_recursive(dependee, instance, init_order);
     }
 }
 
 fn init_modules(graph: *ModuleGraph, instance: *Instance) !void {
-    for (graph.root_nodes) |node| {
+    for (graph.root_nodes.items) |node| {
         try init_recursive(node, instance, &graph.init_order);
     }
 }
@@ -140,13 +141,15 @@ fn verify(graph: *ModuleGraph) !void {
 }
 
 fn deinit_modules(graph: *ModuleGraph) void {
-    var i: usize = graph.init_order.len;
+    var i: usize = graph.init_order.items.len;
     while (i > 0) {
         i -= 1;
 
         const node = graph.init_order.items[i];
         if (node.deinit) |deinit_node| {
-            deinit_node(node.data);
+            if (node.data) |data| {
+                deinit_node(data);
+            }
         }
     }
 }

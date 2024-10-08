@@ -44,15 +44,15 @@ pub fn deinit(instance: *Instance) void {
 }
 
 pub fn create_resource(instance: *Instance, comptime T: type) !*T {
-    const resource = try instance.allocator.create(T);
-    errdefer instance.allocator.destroy(resource);
+    const resource = try instance.allocator.alloc(u8, @sizeOf(T));
+    errdefer instance.allocator.free(resource);
 
     if (@typeInfo(type) == .Struct)
-        resource.* = T{};
+        @memcpy(resource, std.mem.toBytes(T{}));
 
-    instance.resources.putNoClobber(util.typeid(T), std.mem.asBytes(resource));
+    try instance.resources.putNoClobber(util.typeid(T), std.mem.asBytes(resource));
 
-    return resource;
+    return @ptrCast(@alignCast(resource));
 }
 
 pub fn get_resource(instance: *Instance, comptime T: type) ?*T {

@@ -23,21 +23,23 @@ fn map_modules(root_dir: std.fs.Dir, allocator: Allocator) !void {
     defer walker.deinit();
 
     while (try walker.next()) |entry| {
-        if (!std.mem.eql(u8, std.fs.path.extension(entry.path), ".zig"))
+        const path = try allocator.dupe(u8, entry.path);
+
+        if (!std.mem.eql(u8, std.fs.path.extension(path), ".zig"))
             continue;
 
-        var iter = std.mem.splitSequence(u8, entry.path, &.{ std.fs.path.sep });
+        var iter = std.mem.splitSequence(u8, path, &.{ std.fs.path.sep });
         const first = iter.first();
 
         if (modules.getPtr(first)) |group| {
-            try group.append(Module{ .name = std.fs.path.stem(entry.path), .path = entry.path });
+            try group.append(Module{ .name = std.fs.path.stem(path), .path = path });
         } else {
             var group = ArrayList(Module).init(allocator);
 
             try group.append(
                 Module{
-                    .name = std.fs.path.stem(entry.path),
-                    .path = try std.mem.replaceOwned(u8, allocator, entry.path, "\\", "/")
+                    .name = std.fs.path.stem(path),
+                    .path = try std.mem.replaceOwned(u8, allocator, path, "\\", "/")
                 }
             );
 
