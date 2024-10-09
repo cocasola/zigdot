@@ -1,5 +1,5 @@
 pub const ui = struct {
-	pub const Window = @import("modules/ui/Window.zig");
+	pub const window = @import("modules/ui/window.zig");
 };
 
 pub const math = struct {

@@ -16,15 +16,11 @@ pub fn init(instance: *Instance) anyerror!*Window {
     // raylib.initWindow(window.width, window.height, window.name);
     // raylib.disableEventWaiting();
 
-    std.debug.print("Initialized window.", .{});
-
     return window;
 }
 
 pub fn deinit(window: *Window) void {
     _ = window;
-
-    std.debug.print("Deinitialized window.", .{});
 
     // raylib.closeWindow();
 }

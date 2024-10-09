@@ -7,6 +7,7 @@ const AutoHashMap = std.AutoHashMap;
 const Config = @import("Config.zig");
 const Schedule = @import("Schedule.zig");
 const ModuleGraph = @import("ModuleGraph.zig");
+const Systems = @import("Systems.zig");
 
 const Instance = @This();
 
@@ -14,14 +15,19 @@ config: *const Config,
 allocator: Allocator,
 modules: ModuleGraph,
 resources: AutoHashMap(u32, []u8),
+systems: Systems,
 
 pub fn init(allocator: Allocator, config: Config) !Instance {
     var instance = Instance{
         .config = &config,
         .allocator = allocator,
         .resources = undefined,
-        .modules = undefined
+        .modules = undefined,
+        .systems = undefined
     };
+
+    instance.systems = Systems.init(allocator);
+    errdefer instance.systems.deinit();
 
     instance.resources = AutoHashMap(u32, []u8).init(allocator);
     errdefer instance.resources.deinit();
@@ -41,6 +47,8 @@ pub fn deinit(instance: *Instance) void {
     }
 
     instance.resources.deinit();
+
+    instance.* = undefined;
 }
 
 pub fn create_resource(instance: *Instance, comptime T: type) !*T {
@@ -50,7 +58,7 @@ pub fn create_resource(instance: *Instance, comptime T: type) !*T {
     if (@typeInfo(type) == .Struct)
         @memcpy(resource, std.mem.toBytes(T{}));
 
-    try instance.resources.putNoClobber(util.typeid(T), std.mem.asBytes(resource));
+    try instance.resources.putNoClobber(util.typeid(T), resource);
 
     return @ptrCast(@alignCast(resource));
 }

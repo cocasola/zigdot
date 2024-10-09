@@ -33,5 +33,7 @@ pub const Static = struct {
 
     pub fn deinit(this: *Static) void {
         this.arena.deinit();
+
+        this.* = undefined;
     }
 };

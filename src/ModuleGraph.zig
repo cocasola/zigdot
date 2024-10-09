@@ -30,10 +30,6 @@ pub const Node = struct {
     deinitialized: bool
 };
 
-const Error = error {
-    CyclicDependency
-};
-
 arena: ArenaAllocator,
 nodes: ArrayList(Node),
 root_nodes: ArrayList(*Node),
@@ -155,15 +151,17 @@ fn deinit_modules(graph: *ModuleGraph) void {
 }
 
 pub fn init(allocator: Allocator, instance: *Instance) !ModuleGraph {
-    var arena = ArenaAllocator.init(allocator);
-    errdefer arena.deinit();
-
     var graph = ModuleGraph{
-        .arena = arena,
-        .init_order = ArrayList(*Node).init(arena.allocator()),
-        .nodes = ArrayList(Node).init(arena.allocator()),
-        .root_nodes = ArrayList(*Node).init(arena.allocator())
+        .arena = ArenaAllocator.init(allocator),
+        .init_order = undefined,
+        .nodes = undefined,
+        .root_nodes = undefined
     };
+    errdefer graph.arena.deinit();
+
+    graph.init_order = ArrayList(*Node).init(graph.arena.allocator());
+    graph.nodes = ArrayList(Node).init(graph.arena.allocator());
+    graph.root_nodes = ArrayList(*Node).init(graph.arena.allocator());
 
     try graph.build_graph();
     try graph.init_modules(instance);
@@ -174,6 +172,7 @@ pub fn init(allocator: Allocator, instance: *Instance) !ModuleGraph {
 
 pub fn deinit(graph: *ModuleGraph) void {
     graph.deinit_modules();
-
     graph.arena.deinit();
+
+    graph.* = undefined;
 }
