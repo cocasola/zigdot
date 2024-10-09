@@ -13,6 +13,8 @@ pub const Window = struct {
 pub fn init(instance: *Instance) anyerror!*Window {
     const window = try instance.create_resource(Window);
 
+    std.debug.print("window init\n", .{});
+
     // raylib.initWindow(window.width, window.height, window.name);
     // raylib.disableEventWaiting();
 
@@ -21,6 +23,8 @@ pub fn init(instance: *Instance) anyerror!*Window {
 
 pub fn deinit(window: *Window) void {
     _ = window;
+
+    std.debug.print("window deinit\n", .{});
 
     // raylib.closeWindow();
 }

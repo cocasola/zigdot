@@ -6,14 +6,14 @@ const Allocator = std.mem.Allocator;
 const AutoHashMap = std.AutoHashMap;
 const Config = @import("Config.zig");
 const Schedule = @import("Schedule.zig");
-const ModuleGraph = @import("ModuleGraph.zig");
+const Modules = @import("Modules.zig");
 const Systems = @import("Systems.zig");
 
 const Instance = @This();
 
 config: *const Config,
 allocator: Allocator,
-modules: ModuleGraph,
+modules: Modules,
 resources: AutoHashMap(u32, []u8),
 systems: Systems,
 
@@ -26,13 +26,13 @@ pub fn init(allocator: Allocator, config: Config) !Instance {
         .systems = undefined
     };
 
-    instance.systems = Systems.init(allocator);
+    instance.systems = try Systems.init(allocator);
     errdefer instance.systems.deinit();
 
     instance.resources = AutoHashMap(u32, []u8).init(allocator);
     errdefer instance.resources.deinit();
 
-    instance.modules = try ModuleGraph.init(allocator, &instance);
+    instance.modules = try Modules.init(allocator, &instance);
     errdefer instance.modules.deinit();
 
     return instance;
@@ -47,6 +47,7 @@ pub fn deinit(instance: *Instance) void {
     }
 
     instance.resources.deinit();
+    instance.systems.deinit();
 
     instance.* = undefined;
 }

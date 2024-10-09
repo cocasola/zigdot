@@ -15,20 +15,21 @@ pub fn DepGraph(comptime T: type) type {
         };
 
         const Error = error {
-            CyclicDependency
+            CyclicDependency,
+            InvalidDependency
         };
 
         walker: []T,
         map: AutoHashMap(u32, *Node),
         nodes: List(Node),
-        node_count: i32,
+        node_count: u32,
         allocator: Allocator,
 
-        pub fn init(allocator: Allocator) !DepGraph {
+        pub fn init(allocator: Allocator) DepGraph(T) {
             const map = AutoHashMap(u32, *Node).init(allocator);
             const nodes = List(Node){};
 
-            return DepGraph{
+            return DepGraph(T){
                 .walker = &.{},
                 .map = map,
                 .nodes = nodes,
@@ -71,13 +72,13 @@ pub fn DepGraph(comptime T: type) type {
             node.data = data;
             node.seen = false;
 
-            node.dep_for = ArrayList(T).init(graph.allocator);
+            node.dep_for = ArrayList(*Node).init(graph.allocator);
             errdefer node.dep_for.deinit();
 
-            node.deps = graph.allocator.alloc(*Node, deps.len);
+            node.deps = try graph.allocator.alloc(*Node, deps.len);
             errdefer graph.allocator.free(node.deps);
             for (node.deps, deps) |*to, from| {
-                to.* = try graph.map.get(from);
+                to.* = graph.map.get(from) orelse return Error.InvalidDependency;
                 try to.*.dep_for.append(node);
             }
 
@@ -85,15 +86,15 @@ pub fn DepGraph(comptime T: type) type {
             graph.nodes.prepend(list_node);
         }
 
-        fn walk(graph: *DepGraph(T), node: *Node, index: i32) void {
+        fn walk(graph: *DepGraph(T), node: *Node, index: usize) void {
             node.seen = true;
-            graph.walker[index] = node;
+            graph.walker[index] = node.data;
 
             outer: for (node.dep_for.items) |dep_for| {
                 if (dep_for.seen)
                     continue;
 
-                for (dep_for.deps.items) |dep| {
+                for (dep_for.deps) |dep| {
                     if (!dep.seen)
                         continue :outer;
                 }
@@ -104,10 +105,11 @@ pub fn DepGraph(comptime T: type) type {
 
         pub fn build_walker(graph: *DepGraph(T)) !void {
             graph.allocator.free(graph.walker);
-            graph.walker = try graph.allocator.alloc(T, graph.nodes_count);
+            graph.walker = try graph.allocator.alloc(T, graph.node_count);
             errdefer graph.allocator.free(graph.walker);
 
-            graph.walk(graph.nodes.first orelse return, 0);
+            const first_list_node = graph.nodes.first orelse return;
+            graph.walk(&first_list_node.data, 0);
 
             var it = graph.nodes.first;
             while (it) |node| {
