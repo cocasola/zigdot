@@ -19,7 +19,6 @@ pub fn DepGraph(comptime T: type) type {
             InvalidDependency
         };
 
-        walker: []T,
         map: AutoHashMap(u32, *Node),
         nodes: List(Node),
         node_count: u32,
@@ -86,9 +85,9 @@ pub fn DepGraph(comptime T: type) type {
             graph.nodes.prepend(list_node);
         }
 
-        fn walk(graph: *DepGraph(T), node: *Node, index: usize) void {
+        fn walk(graph: *DepGraph(T), node: *Node, walker: []T, index: usize) void {
             node.seen = true;
-            graph.walker[index] = node.data;
+            walker[index] = node.data;
 
             outer: for (node.dep_for.items) |dep_for| {
                 if (dep_for.seen)
@@ -99,17 +98,16 @@ pub fn DepGraph(comptime T: type) type {
                         continue :outer;
                 }
 
-                graph.walk(dep_for, index + 1);
+                graph.walk(dep_for, walker, index + 1);
             }
         }
 
-        pub fn build_walker(graph: *DepGraph(T)) !void {
-            graph.allocator.free(graph.walker);
-            graph.walker = try graph.allocator.alloc(T, graph.node_count);
-            errdefer graph.allocator.free(graph.walker);
+        pub fn build_walker(graph: *DepGraph(T)) ![]T {
+            const walker = try graph.allocator.alloc(T, graph.node_count);
+            errdefer graph.allocator.free(walker);
 
             const first_list_node = graph.nodes.first orelse return;
-            graph.walk(&first_list_node.data, 0);
+            graph.walk(&first_list_node.data, walker, 0);
 
             var it = graph.nodes.first;
             while (it) |node| {
@@ -119,6 +117,8 @@ pub fn DepGraph(comptime T: type) type {
                 node.data.seen = false;
                 it = node.next;
             }
+
+            return walker;
         }
     };
 }

@@ -1,11 +1,2 @@
 {
-    "schedule": [
-        ["lim_ui_events"],
-
-        ["lim_physics"],
-
-        ["lim_pre_render"],
-        ["lim_render"],
-        ["lim_post_render"]
-    ]
 }

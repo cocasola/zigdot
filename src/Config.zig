@@ -6,10 +6,6 @@ const ArenaAllocator = std.heap.ArenaAllocator;
 
 const Config = @This();
 
-modules: ?std.json.Value = null,
-fixed_rate: i32 = 60,
-module_blacklist: [][]const u8 = &.{},
-
 pub const Static = struct {
     config: Config,
     arena: ArenaAllocator,

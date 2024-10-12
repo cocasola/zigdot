@@ -26,7 +26,7 @@ pub fn init(allocator: Allocator, config: Config) !Instance {
         .systems = undefined
     };
 
-    instance.systems = try Systems.init(allocator);
+    instance.systems = Systems.init(allocator);
     errdefer instance.systems.deinit();
 
     instance.resources = AutoHashMap(u32, []u8).init(allocator);
@@ -52,7 +52,7 @@ pub fn deinit(instance: *Instance) void {
     instance.* = undefined;
 }
 
-pub fn create_resource(instance: *Instance, comptime T: type) !*T {
+pub fn register_resource(instance: *Instance, comptime T: type) !*T {
     const resource = try instance.allocator.alloc(u8, @sizeOf(T));
     errdefer instance.allocator.free(resource);
 
@@ -67,4 +67,9 @@ pub fn create_resource(instance: *Instance, comptime T: type) !*T {
 pub fn get_resource(instance: *Instance, comptime T: type) ?*T {
     const bytes = instance.resources.get(util.typeid(T)) orelse return null;
     return @ptrCast(@alignCast(bytes));
+}
+
+pub fn register_system(instance: *Instance, system: anytype) !void {
+    _ = instance;
+    _ = system;
 }

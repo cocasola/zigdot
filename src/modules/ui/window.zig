@@ -2,6 +2,8 @@ const std = @import("std");
 const raylib = @import("raylib");
 
 const Instance = @import("../../Instance.zig");
+const System = @import("../../Systems.zig").System;
+const SystemConfig = @import("../../Systems.zig").SystemConfig;
 
 pub const Window = struct {
     width: i32,
@@ -10,8 +12,15 @@ pub const Window = struct {
     quit: bool
 };
 
+pub const UiEvents = struct {
+
+};
+
+pub const system = System(.{ .callback = @ptrCast(@constCast(&x)) });
+
 pub fn init(instance: *Instance) anyerror!*Window {
-    const window = try instance.create_resource(Window);
+    const window = try instance.register_resource(Window);
+    try instance.register_system(system);
 
     std.debug.print("window init\n", .{});
 

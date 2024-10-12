@@ -26,6 +26,8 @@ pub const Module = struct {
 };
 
 graph: DepGraph(Module),
+walker: []Module,
+allocator: Allocator,
 
 pub fn init(allocator: Allocator, instance: *Instance) !Modules {
     var graph = DepGraph(Module).init(allocator);
@@ -46,7 +48,11 @@ pub fn init(allocator: Allocator, instance: *Instance) !Modules {
             const module_inner_ret_type = @typeInfo(payload_type).Pointer.child;
 
             const p_init: Init(module_inner_ret_type) = Type.init;
-            const p_deinit: ?Deinit(module_inner_ret_type) = if (@hasDecl(Type, "deinit")) Type.deinit else null;
+            const p_deinit: ?Deinit(module_inner_ret_type) =
+                if (@hasDecl(Type, "deinit"))
+                    Type.deinit
+                else
+                    null;
 
             const module = Module{
                 .data = null,
@@ -70,28 +76,32 @@ pub fn init(allocator: Allocator, instance: *Instance) !Modules {
     }
 
     try graph.build_walker();
+    const walker = try graph.build_walker();
 
     for (graph.walker) |*module| {
         module.data = try module.init(instance);
     }
 
     return Modules{
-        .graph = graph
+        .graph = graph,
+        .walker = walker,
+        .allocator = allocator
     };
 }
 
 pub fn deinit(modules: *Modules) void {
-    var i: usize = modules.graph.walker.len;
+    var i: usize = modules.walker.len;
     while (i > 0) {
         i -= 1;
 
-        const node = modules.graph.walker[i];
+        const node = modules.walker[i];
         if (node.deinit) |deinit_node| {
             if (node.data) |data| {
                 deinit_node(data);
             }
         }
     }
+    modules.allocator.free(modules.walker);
 
     modules.graph.deinit();
 
