@@ -2,8 +2,7 @@ const std = @import("std");
 const raylib = @import("raylib");
 
 const Instance = @import("../../Instance.zig");
-const System = @import("../../Systems.zig").System;
-const SystemConfig = @import("../../Systems.zig").SystemConfig;
+const Constraints = @import("../../Systems.zig").Constraints;
 
 pub const Window = struct {
     width: i32,
@@ -12,20 +11,35 @@ pub const Window = struct {
     quit: bool
 };
 
-pub const UiEvents = struct {
+pub const SClearWindow = struct {
+    window: *Window,
 
+    pub fn run(this: *SClearWindow) anyerror!void {
+        _ = this;
+        std.debug.print("clear\n", .{});
+    }
 };
 
-pub const system = System(.{ .callback = @ptrCast(@constCast(&x)) });
+pub const SUpdateWindow = struct {
+    pub const constraints = Constraints{
+        .after = &.{ SClearWindow }
+    };
+
+    window: *Window,
+
+    pub fn run(this: *SUpdateWindow) anyerror!void {
+        _ = this;
+        std.debug.print("update\n", .{});
+    }
+};
 
 pub fn init(instance: *Instance) anyerror!*Window {
     const window = try instance.register_resource(Window);
-    try instance.register_system(system);
+
+    try instance.register_system(SClearWindow{ .window = window });
+    try instance.register_system(SUpdateWindow{ .window = window });
 
     std.debug.print("window init\n", .{});
-
-    // raylib.initWindow(window.width, window.height, window.name);
-    // raylib.disableEventWaiting();
 
     return window;
 }
@@ -34,25 +48,4 @@ pub fn deinit(window: *Window) void {
     _ = window;
 
     std.debug.print("window deinit\n", .{});
-
-    // raylib.closeWindow();
 }
-
-// pub fn lim_ui_events(module: *Module) anyerror!void {
-//     raylib.pollInputEvents();
-//     module.quit = raylib.windowShouldClose();
-// }
-//
-// pub fn lim_pre_render(module: *Module) anyerror!void {
-//     _ = module;
-//
-//     raylib.beginDrawing();
-//     raylib.clearBackground(raylib.Color.black);
-// }
-//
-// pub fn lim_post_render(module: *Module) anyerror!void {
-//     _ = module;
-//
-//     raylib.endDrawing();
-//     raylib.swapScreenBuffer();
-// }

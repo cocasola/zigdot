@@ -17,6 +17,8 @@ pub fn main() !void {
     var instance = try Instance.init(allocator, config.config);
     defer instance.deinit();
 
+    try instance.run_systems();
+
     // const window = instance.get_module(Window).?;
     //
     // while (!window.quit) {

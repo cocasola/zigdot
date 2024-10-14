@@ -8,7 +8,7 @@ const List = std.SinglyLinkedList;
 pub fn DepGraph(comptime T: type) type {
     return struct {
         pub const Node = struct {
-            deps: []*Node,
+            deps: ArrayList(*Node),
             dep_for: ArrayList(*Node),
             data: T,
             seen: bool
@@ -16,7 +16,8 @@ pub fn DepGraph(comptime T: type) type {
 
         const Error = error {
             CyclicDependency,
-            InvalidDependency
+            InvalidDependency,
+            InvalidDependencyFor
         };
 
         map: AutoHashMap(u32, *Node),
@@ -29,7 +30,6 @@ pub fn DepGraph(comptime T: type) type {
             const nodes = List(Node){};
 
             return DepGraph(T){
-                .walker = &.{},
                 .map = map,
                 .nodes = nodes,
                 .allocator = allocator,
@@ -42,14 +42,13 @@ pub fn DepGraph(comptime T: type) type {
             while (it) |node| {
                 const next = node.next;
 
-                graph.allocator.free(node.data.deps);
+                node.data.deps.deinit();
                 node.data.dep_for.deinit();
                 graph.allocator.destroy(node);
 
                 it = next;
             }
 
-            graph.allocator.free(graph.walker);
             graph.map.deinit();
 
             graph.* = undefined;
@@ -60,7 +59,7 @@ pub fn DepGraph(comptime T: type) type {
             return &node.data;
         }
 
-        pub fn add(graph: *DepGraph(T), data: T, id: u32, deps: []u32) !void {
+        pub fn add(graph: *DepGraph(T), data: T, id: u32, deps: []u32, dep_for: []u32) !void {
             const list_node = try graph.allocator.create(List(Node).Node);
             const node = &list_node.data;
 
@@ -73,32 +72,42 @@ pub fn DepGraph(comptime T: type) type {
 
             node.dep_for = ArrayList(*Node).init(graph.allocator);
             errdefer node.dep_for.deinit();
+            node.deps = ArrayList(*Node).init(graph.allocator);
+            errdefer node.deps.deinit();
 
-            node.deps = try graph.allocator.alloc(*Node, deps.len);
-            errdefer graph.allocator.free(node.deps);
-            for (node.deps, deps) |*to, from| {
-                to.* = graph.map.get(from) orelse return Error.InvalidDependency;
-                try to.*.dep_for.append(node);
+            for (deps) |dep| {
+                const dep_node = graph.map.get(dep) orelse return Error.InvalidDependency;
+
+                try node.deps.append(dep_node);
+                try dep_node.dep_for.append(node);
+            }
+
+            for (dep_for) |it| {
+                const dep_for_node = graph.map.get(it) orelse return Error.InvalidDependencyFor;
+
+                try node.dep_for.append(dep_for_node);
+                try dep_for_node.deps.append(node);
             }
 
             graph.node_count += 1;
             graph.nodes.prepend(list_node);
         }
 
-        fn walk(graph: *DepGraph(T), node: *Node, walker: []T, index: usize) void {
+        fn walk(graph: *DepGraph(T), node: *Node, walker: [*]T, index: *usize) void {
             node.seen = true;
-            walker[index] = node.data;
+            walker[index.*] = node.data;
+            index.* += 1;
 
             outer: for (node.dep_for.items) |dep_for| {
                 if (dep_for.seen)
                     continue;
 
-                for (dep_for.deps) |dep| {
+                for (dep_for.deps.items) |dep| {
                     if (!dep.seen)
                         continue :outer;
                 }
 
-                graph.walk(dep_for, walker, index + 1);
+                graph.walk(dep_for, walker, index);
             }
         }
 
@@ -106,10 +115,17 @@ pub fn DepGraph(comptime T: type) type {
             const walker = try graph.allocator.alloc(T, graph.node_count);
             errdefer graph.allocator.free(walker);
 
-            const first_list_node = graph.nodes.first orelse return;
-            graph.walk(&first_list_node.data, walker, 0);
+            var index: usize = 0;
 
             var it = graph.nodes.first;
+            while (it) |node| {
+                if (node.data.deps.items.len == 0)
+                    graph.walk(&node.data, walker.ptr, &index);
+
+                it = node.next;
+            }
+
+            it = graph.nodes.first;
             while (it) |node| {
                 if (!node.data.seen)
                     return Error.CyclicDependency;

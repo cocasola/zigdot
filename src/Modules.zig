@@ -68,17 +68,16 @@ pub fn init(allocator: Allocator, instance: *Instance) !Modules {
                     to.* = util.typeid(from);
                 }
 
-                try graph.add(module, typeid, deps);
+                try graph.add(module, typeid, deps, &.{});
             } else {
-                try graph.add(module, typeid, &.{});
+                try graph.add(module, typeid, &.{}, &.{});
             }
         }
     }
 
-    try graph.build_walker();
     const walker = try graph.build_walker();
 
-    for (graph.walker) |*module| {
+    for (walker) |*module| {
         module.data = try module.init(instance);
     }
 

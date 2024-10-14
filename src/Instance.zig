@@ -5,7 +5,6 @@ const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 const AutoHashMap = std.AutoHashMap;
 const Config = @import("Config.zig");
-const Schedule = @import("Schedule.zig");
 const Modules = @import("Modules.zig");
 const Systems = @import("Systems.zig");
 
@@ -34,6 +33,8 @@ pub fn init(allocator: Allocator, config: Config) !Instance {
 
     instance.modules = try Modules.init(allocator, &instance);
     errdefer instance.modules.deinit();
+
+    try instance.systems.build_walker();
 
     return instance;
 }
@@ -70,6 +71,13 @@ pub fn get_resource(instance: *Instance, comptime T: type) ?*T {
 }
 
 pub fn register_system(instance: *Instance, system: anytype) !void {
-    _ = instance;
-    _ = system;
+    try instance.systems.register_system(system);
+}
+
+pub fn run_systems(instance: *Instance) !void {
+    for (instance.systems.walker) |maybe_system| {
+        if (maybe_system) |system| {
+            try system.callback(@ptrCast(system.bytes));
+        }
+    }
 }
