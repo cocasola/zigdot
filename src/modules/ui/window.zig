@@ -1,6 +1,10 @@
 const std = @import("std");
 const raylib = @import("raylib");
 
+const sdl = @cImport({
+    @cInclude("SDL3/SDL.h");
+});
+
 const Instance = @import("../../Instance.zig");
 const Constraints = @import("../../Systems.zig").Constraints;
 
@@ -33,13 +37,22 @@ pub const SUpdateWindow = struct {
     }
 };
 
+pub const Error = error {
+    SdlFail
+};
+
 pub fn init(instance: *Instance) anyerror!*Window {
     const window = try instance.register_resource(Window);
 
     try instance.register_system(SClearWindow{ .window = window });
     try instance.register_system(SUpdateWindow{ .window = window });
 
-    std.debug.print("window init\n", .{});
+    if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO | sdl.SDL_INIT_AUDIO | sdl.SDL_INIT_EVENTS)) {
+        std.debug.print("SDL Error: {s}\n", .{ sdl.SDL_GetError() });
+        return Error.SdlFail;
+    }
+
+
 
     return window;
 }
@@ -47,5 +60,5 @@ pub fn init(instance: *Instance) anyerror!*Window {
 pub fn deinit(window: *Window) void {
     _ = window;
 
-    std.debug.print("window deinit\n", .{});
+    sdl.SDL_Quit();
 }

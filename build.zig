@@ -1,4 +1,5 @@
 const std = @import("std");
+const paths = @import("paths.zig");
 
 const ArenaAllocator = std.heap.ArenaAllocator;
 const Allocator = std.mem.Allocator;
@@ -87,17 +88,22 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize
     });
 
+    playground.addLibraryPath(.{ .cwd_relative = paths.sdl ++ "lib" });
+    playground.addIncludePath(.{ .cwd_relative = paths.sdl ++ "include" });
+    lib.addLibraryPath(.{ .cwd_relative = paths.sdl ++ "lib" });
+    lib.addIncludePath(.{ .cwd_relative = paths.sdl ++ "include" });
+
     const raylib_dep = b.dependency("raylib-zig", .{
         .target = target,
         .optimize = optimize
     });
 
-    const raylib_artifact = raylib_dep.artifact("raylib"); // raylib c library
+    const raylib_artifact = raylib_dep.artifact("raylib");
     lib.linkLibrary(raylib_artifact);
     playground.linkLibrary(raylib_artifact);
 
-    const raylib = raylib_dep.module("raylib"); // main raylib module
-    const raygui = raylib_dep.module("raygui"); // raygui module
+    const raylib = raylib_dep.module("raylib");
+    const raygui = raylib_dep.module("raygui");
 
     lib.root_module.addImport("raylib", raylib);
     lib.root_module.addImport("raygui", raygui);

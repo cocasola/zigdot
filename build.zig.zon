@@ -18,7 +18,7 @@
         .@"raylib-zig" = .{
             .url = "https://github.com/Not-Nik/raylib-zig/archive/devel.tar.gz",
             .hash = "1220c1b7e14d6e41479e7f8c0a99b99c4ee953da58ce3987c1ab5840bf5266d81e67",
-        },
+        }
     },
     .paths = .{
         // This makes *all* files, recursively, included in this package. It is generally
