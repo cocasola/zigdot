@@ -12,7 +12,7 @@ pub const Window = struct {
     width: i32,
     height: i32,
     name: [*:0]const u8,
-    quit: bool
+    quit: bool,
 };
 
 pub const SClearWindow = struct {
@@ -25,9 +25,7 @@ pub const SClearWindow = struct {
 };
 
 pub const SUpdateWindow = struct {
-    pub const constraints = Constraints{
-        .after = &.{ SClearWindow }
-    };
+    pub const constraints = Constraints{ .after = &.{SClearWindow} };
 
     window: *Window,
 
@@ -37,9 +35,7 @@ pub const SUpdateWindow = struct {
     }
 };
 
-pub const Error = error {
-    SdlFail
-};
+pub const Error = error{SdlFail};
 
 pub fn init(instance: *Instance) anyerror!*Window {
     const window = try instance.register_resource(Window);
@@ -48,11 +44,9 @@ pub fn init(instance: *Instance) anyerror!*Window {
     try instance.register_system(SUpdateWindow{ .window = window });
 
     if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO | sdl.SDL_INIT_AUDIO | sdl.SDL_INIT_EVENTS)) {
-        std.debug.print("SDL Error: {s}\n", .{ sdl.SDL_GetError() });
+        std.debug.print("SDL Error: {s}\n", .{sdl.SDL_GetError()});
         return Error.SdlFail;
     }
-
-
 
     return window;
 }
