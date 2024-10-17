@@ -77,8 +77,24 @@ pub fn init(allocator: Allocator, instance: *Instance) !Modules {
 
     const walker = try graph.build_walker();
 
-    for (walker) |*module| {
-        module.data = try module.init(instance);
+    for (walker, 0..) |*module, i| {
+        module.data = module.init(instance) catch |err| {
+            var j: usize = i;
+            while (j > 0) {
+                j -= 1;
+
+                const node = walker[j];
+                if (node.deinit) |deinit_node| {
+                    if (node.data) |data| {
+                        deinit_node(data);
+                    }
+                }
+            }
+
+            allocator.free(walker);
+
+            return err;
+        };
     }
 
     return Modules{

@@ -29,7 +29,14 @@ pub fn init(allocator: Allocator, config: Config) !Instance {
     errdefer instance.systems.deinit();
 
     instance.resources = AutoHashMap(u32, []u8).init(allocator);
-    errdefer instance.resources.deinit();
+    errdefer {
+        var iter = instance.resources.valueIterator();
+        while (iter.next()) |resource| {
+            instance.allocator.free(resource.*);
+        }
+ 
+        instance.resources.deinit();
+    }
 
     instance.modules = try Modules.init(allocator, &instance);
     errdefer instance.modules.deinit();
@@ -53,16 +60,17 @@ pub fn deinit(instance: *Instance) void {
     instance.* = undefined;
 }
 
-pub fn register_resource(instance: *Instance, comptime T: type) !*T {
-    const resource = try instance.allocator.alloc(u8, @sizeOf(T));
-    errdefer instance.allocator.free(resource);
+pub fn register_resource(instance: *Instance, resource: anytype) !*@TypeOf(resource) {
+    const T = @TypeOf(resource);
 
-    if (@typeInfo(type) == .Struct)
-        @memcpy(resource, std.mem.toBytes(T{}));
+    const ptr = try instance.allocator.alloc(u8, @sizeOf(T));
+    errdefer instance.allocator.free(ptr);
 
-    try instance.resources.putNoClobber(util.typeid(T), resource);
+    @memcpy(ptr, std.mem.asBytes(&resource));
 
-    return @ptrCast(@alignCast(resource));
+    try instance.resources.putNoClobber(util.typeid(T), ptr);
+
+    return @ptrCast(@alignCast(ptr));
 }
 
 pub fn get_resource(instance: *Instance, comptime T: type) ?*T {

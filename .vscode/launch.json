@@ -9,7 +9,7 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "zig build",
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
             "name": "(OSX) Debug",

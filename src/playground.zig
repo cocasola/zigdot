@@ -2,7 +2,7 @@ const std = @import("std");
 const zigdot = @import("root.zig");
 
 const GPA = std.heap.GeneralPurposeAllocator;
-const Window = zigdot.ui.Window;
+const Window = zigdot.ui.window.RWindow;
 const Config = zigdot.Config;
 const Instance = zigdot.Instance;
 
@@ -17,11 +17,9 @@ pub fn main() !void {
     var instance = try Instance.init(allocator, config.config);
     defer instance.deinit();
 
-    try instance.run_systems();
+    const window = instance.get_resource(Window).?;
 
-    // const window = instance.get_module(Window).?;
-    //
-    // while (!window.quit) {
-    //     try instance.schedule.run();
-    // }
+    while (!window.quit) {
+        try instance.run_systems();
+    }
 }

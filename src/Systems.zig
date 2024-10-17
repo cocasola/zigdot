@@ -6,6 +6,8 @@ const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const DepGraph = @import("dep_graph.zig").DepGraph;
 const Instance = @import("Instance.zig");
+const List = std.SinglyLinkedList;
+const SystemNode = DepGraph(?RegisteredSystem).Node;
 
 const Systems = @This();
 
@@ -95,10 +97,13 @@ pub fn build_walker(systems: *Systems) !void {
 }
 
 pub fn deinit(systems: *Systems) void {
-    for (systems.walker) |maybe_system| {
-        if (maybe_system) |system| {
+    var it = systems.graph.nodes.first;
+    while (it) |list_node| {
+        if (list_node.data.data) |system| {
             systems.allocator.free(system.bytes);
         }
+
+        it = list_node.next;
     }
 
     systems.graph.deinit();

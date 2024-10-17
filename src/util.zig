@@ -1,3 +1,6 @@
+const builtin = @import("builtin");
+const std = @import("std");
+
 pub inline fn assign(from: anytype, comptime T: type) T {
     var r: T = undefined;
 
@@ -12,3 +15,5 @@ pub inline fn assign(from: anytype, comptime T: type) T {
 pub fn typeid(comptime T: type) u32 {
     return @intFromError(@field(anyerror, @typeName(T)));
 }
+
+pub const debug: bool = builtin.mode == std.builtin.OptimizeMode.Debug;

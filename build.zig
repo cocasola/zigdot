@@ -95,28 +95,19 @@ pub fn build(b: *std.Build) !void {
             lib.addIncludePath(.{ .cwd_relative = paths.sdl ++ "include/"});
         },
         .windows => {
-            playground.addLibraryPath(.{ .cwd_relative = paths.sdl_lib });
-            lib.addLibraryPath(.{ .cwd_relative = paths.sdl_lib });
-            playground.addIncludePath(.{ .cwd_relative = paths.sdl_include });
-            lib.addIncludePath(.{ .cwd_relative = paths.sdl_include });
+            playground.addLibraryPath(.{ .cwd_relative = paths.sdl ++ "lib/" });
+            playground.addIncludePath(.{ .cwd_relative = paths.sdl ++ "include/" });
+            playground.addIncludePath(.{ .cwd_relative = paths.sdl_shader_cross });
+            playground.linkSystemLibrary("SDL3.dll");
+            playground.linkLibC();
+            lib.addLibraryPath(.{ .cwd_relative = paths.sdl ++ "lib/" });
+            lib.addIncludePath(.{ .cwd_relative = paths.sdl ++ "include/" });
+            lib.addIncludePath(.{ .cwd_relative = paths.sdl_shader_cross });
+            lib.linkSystemLibrary("SDL3.dll");
+            lib.linkLibC();
         },
         else => {},
     }
-
-    const raylib_dep = b.dependency("raylib-zig", .{ .target = target, .optimize = optimize });
-
-    const raylib_artifact = raylib_dep.artifact("raylib");
-    lib.linkLibrary(raylib_artifact);
-    playground.linkLibrary(raylib_artifact);
-
-    const raylib = raylib_dep.module("raylib");
-    const raygui = raylib_dep.module("raygui");
-
-    lib.root_module.addImport("raylib", raylib);
-    lib.root_module.addImport("raygui", raygui);
-
-    playground.root_module.addImport("raylib", raylib);
-    playground.root_module.addImport("raygui", raygui);
 
     b.installArtifact(lib);
     b.installArtifact(playground);
