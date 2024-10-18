@@ -3,7 +3,7 @@ pub const ui = struct {
 };
 
 pub const graphics = struct {
-	pub const GraphicsPipeline = @import("modules/graphics/GraphicsPipeline.zig");
+	pub const gfx = @import("modules/graphics/gfx.zig");
 };
 
 pub const math = struct {

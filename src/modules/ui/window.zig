@@ -1,14 +1,14 @@
 const c = @cImport({
-    @cDefine("SDL_GPU_SHADERCROSS_IMPLEMENTATION", {});
     @cInclude("SDL3/SDL.h");
-    @cInclude("SDL_gpu_shadercross.h");
 });
 
 const std = @import("std");
 const util = @import("../../util.zig");
+const gfx = @import("../graphics/gfx.zig");
 
 const Instance = @import("../../Instance.zig");
 const Constraints = @import("../../Systems.zig").Constraints;
+const RGfx = gfx.RGfx;
 
 pub const RWindow = struct {
     width: i32,
@@ -16,10 +16,15 @@ pub const RWindow = struct {
     title: [*:0]const u8,
     quit: bool,
     handle: *c.SDL_Window,
-    device: *c.SDL_GPUDevice
+    gfx: *RGfx
 };
 
 pub const SClearWindow = struct {
+    pub const constraints = Constraints{
+        .after = &.{ gfx.SBeginCmdBuf },
+        .before = &.{ gfx.SBeginRender }
+    };
+
     window: *RWindow,
 
     pub fn run(this: *SClearWindow) anyerror!void {
@@ -28,7 +33,9 @@ pub const SClearWindow = struct {
 };
 
 pub const SUpdateWindow = struct {
-    pub const constraints = Constraints{ .after = &.{ SClearWindow } };
+    pub const constraints = Constraints{
+        .after = &.{ gfx.SEndCmdBuf }
+    };
 
     window: *RWindow,
 
@@ -51,6 +58,8 @@ fn sdl_error(err: Error) Error {
     return err;
 }
 
+pub const deps = .{ gfx };
+
 pub fn init(instance: *Instance) anyerror!*RWindow {
     const window = try instance.register_resource(RWindow{
         .width = 1280,
@@ -58,7 +67,7 @@ pub fn init(instance: *Instance) anyerror!*RWindow {
         .title = "Zigdot",
         .quit = false,
         .handle = undefined,
-        .device = undefined
+        .gfx = instance.get_resource(RGfx) orelse unreachable
     });
 
     try instance.register_system(SClearWindow{ .window = window });
@@ -70,16 +79,14 @@ pub fn init(instance: *Instance) anyerror!*RWindow {
         return sdl_error(Error.CreateWindowFail);
     errdefer c.SDL_DestroyWindow(window.handle);
 
-	if (!c.SDL_ClaimWindowForGPUDevice(window.device, window.handle))
-        return sdl_error(Error.InitGraphicsFail);
-    errdefer c.SDL_ReleaseWindowFromGPUDevice(window.device, window.handle);
+	if (!c.SDL_ClaimWindowForGPUDevice(@ptrCast(window.gfx.device), window.handle))
+        return sdl_error(Error.CreateWindowFail);
+    errdefer c.SDL_ReleaseWindowFromGPUDevice(window.gfx.device, window.handle);
 
     return window;
 }
 
 pub fn deinit(window: *RWindow) void {
-    c.SDL_ReleaseWindowFromGPUDevice(window.device, window.handle);
+    c.SDL_ReleaseWindowFromGPUDevice(@ptrCast(window.gfx.device), window.handle);
     c.SDL_DestroyWindow(window.handle);
-    c.SDL_DestroyGPUDevice(window.device);
-    c.SDL_Quit();
 }
